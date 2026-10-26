@@ -1,6 +1,46 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once 'connect.php';
+
+/*
+ * Xác định tài khoản đang đăng nhập để gắn đơn hàng với users.id.
+ * Hỗ trợ session user_id và session username từ phiên bản đăng nhập cũ.
+ * Nếu khách chưa đăng nhập, user_id để NULL (đặt hàng vãng lai).
+ */
+$currentUserId = null;
+
+if (isset($_SESSION['user_id']) && filter_var($_SESSION['user_id'], FILTER_VALIDATE_INT) !== false) {
+    $candidateUserId = (int)$_SESSION['user_id'];
+    if ($candidateUserId > 0) {
+        $userStmt = $conn->prepare('SELECT id FROM users WHERE id = ? LIMIT 1');
+        if ($userStmt) {
+            $userStmt->bind_param('i', $candidateUserId);
+            $userStmt->execute();
+            $foundUser = $userStmt->get_result()->fetch_assoc();
+            if ($foundUser) {
+                $currentUserId = (int)$foundUser['id'];
+            }
+            $userStmt->close();
+        }
+    }
+}
+
+if ($currentUserId === null && !empty($_SESSION['username'])) {
+    $sessionUsername = trim((string)$_SESSION['username']);
+    if ($sessionUsername !== '') {
+        $userStmt = $conn->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
+        if ($userStmt) {
+            $userStmt->bind_param('s', $sessionUsername);
+            $userStmt->execute();
+            $foundUser = $userStmt->get_result()->fetch_assoc();
+            if ($foundUser) {
+                $currentUserId = (int)$foundUser['id'];
+            }
+            $userStmt->close();
+        }
+    }
+}
+
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 $token = $_SESSION['csrf_token'];
 $escape = static fn($value): string => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -44,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$orderComplete) {
                 $productStmt->bind_param('i', $productId);
                 $productStmt->execute();
                 $dbProduct = $productStmt->get_result()->fetch_assoc();
+                $productStmt->close();
                 if (!$dbProduct) {
                     throw new RuntimeException('Có sản phẩm trong giỏ hàng không còn tồn tại.');
                 }
@@ -65,8 +106,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$orderComplete) {
             $conn->begin_transaction();
             $paymentMethod = 'Thanh toán khi nhận hàng (COD)';
             $status = 'Chờ xác nhận';
-            $insertOrder = $conn->prepare('INSERT INTO donhang (ten_nguoi_nhan, email, sdt, dia_chi, ghi_chu, tong_tien, phuong_thuc_thanh_toan, trang_thai) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-            $insertOrder->bind_param('sssssdss', $name, $email, $phone, $address, $note, $total, $paymentMethod, $status);
+            $insertOrder = $conn->prepare('INSERT INTO donhang (user_id, ten_nguoi_nhan, email, sdt, dia_chi, ghi_chu, tong_tien, phuong_thuc_thanh_toan, trang_thai) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            if (!$insertOrder) {
+                throw new RuntimeException('Không thể chuẩn bị lưu đơn hàng.');
+            }
+            $insertOrder->bind_param('isssssdss', $currentUserId, $name, $email, $phone, $address, $note, $total, $paymentMethod, $status);
             $insertOrder->execute();
             $newOrderId = (int)$conn->insert_id;
 

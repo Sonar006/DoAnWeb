@@ -53,7 +53,12 @@ if (!in_array($currentTab, ['orders', 'products'], true)) {
 $result = $conn->query('SELECT id, name, gia_sp, image, danhmuc_id FROM sanpham ORDER BY id DESC');
 
 // Lấy danh sách đơn hàng kèm chi tiết sản phẩm
-$ordersResult = $conn->query('SELECT * FROM donhang ORDER BY id DESC');
+$ordersResult = $conn->query(
+    'SELECT d.*, u.username AS tai_khoan
+     FROM donhang AS d
+     LEFT JOIN users AS u ON u.id = d.user_id
+     ORDER BY d.id DESC'
+);
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -112,6 +117,7 @@ $ordersResult = $conn->query('SELECT * FROM donhang ORDER BY id DESC');
                 <thead>
                     <tr>
                         <th>Mã ĐH</th>
+                        <th>Tài khoản</th>
                         <th>Khách hàng & SĐT</th>
                         <th>Địa chỉ giao hàng</th>
                         <th>Sản phẩm đặt mua</th>
@@ -130,6 +136,7 @@ $ordersResult = $conn->query('SELECT * FROM donhang ORDER BY id DESC');
                 ?>
                     <tr>
                         <td><strong>#<?= (int)$order['id'] ?></strong><br><small><?= $escape(date('d/m/Y H:i', strtotime($order['ngay_dat']))) ?></small></td>
+                        <td><?= !empty($order['tai_khoan']) ? $escape($order['tai_khoan']) : 'Khách vãng lai / đơn cũ' ?></td>
                         <td>
                             <strong><?= $escape($order['ten_nguoi_nhan']) ?></strong><br>
                             📞 <?= $escape($order['sdt']) ?><br>
@@ -178,7 +185,7 @@ $ordersResult = $conn->query('SELECT * FROM donhang ORDER BY id DESC');
                         </td>
                     </tr>
                 <?php endwhile; else: ?>
-                    <tr><td colspan="7">Chưa có đơn hàng nào được đặt.</td></tr>
+                    <tr><td colspan="8">Chưa có đơn hàng nào được đặt.</td></tr>
                 <?php endif; ?>
                 </tbody>
             </table>

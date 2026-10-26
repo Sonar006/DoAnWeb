@@ -14,8 +14,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $row = mysqli_fetch_assoc($result);
         // Kiểm tra mật khẩu (đơn giản hoặc dùng password_verify nếu lưu mã hóa)
         if ($password == $row['password']) {
+            $_SESSION['user_id'] = (int)$row['id'];
             $_SESSION['username'] = $row['username'];
-            $_SESSION['role'] = $row['role']; // 'admin' hoặc 'user'
+            $_SESSION['role'] = $row['role'];   
             
             if ($row['role'] == 'admin') {
                 header("Location: admin.php");

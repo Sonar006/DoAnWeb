@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th10 21, 2026 lúc 07:29 PM
+-- Thời gian đã tạo: Th10 26, 2026 lúc 10:26 PM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.2.12
 
@@ -76,6 +76,7 @@ INSERT INTO `danhmuc` (`id`, `name`) VALUES
 
 CREATE TABLE `donhang` (
   `id` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
   `ten_nguoi_nhan` varchar(120) NOT NULL,
   `email` varchar(190) DEFAULT NULL,
   `sdt` varchar(30) NOT NULL,
@@ -91,10 +92,10 @@ CREATE TABLE `donhang` (
 -- Đang đổ dữ liệu cho bảng `donhang`
 --
 
-INSERT INTO `donhang` (`id`, `ten_nguoi_nhan`, `email`, `sdt`, `dia_chi`, `ghi_chu`, `tong_tien`, `phuong_thuc_thanh_toan`, `trang_thai`, `ngay_dat`) VALUES
-(1, 'Nguyễn Thế Đại', 'thedaiq27@gmail.com', '0346132165', 'Hà Nội', '', 200000.00, 'Thanh toán khi nhận hàng (COD)', 'Đã xác nhận', '2026-10-21 23:45:45'),
-(2, 'Nguyễn Thế Đại', 'sonathytq1507@gmail.com', '0346132165', 'Hà Nội', '', 170000.00, 'Thanh toán khi nhận hàng (COD)', 'Đã xác nhận', '2026-10-21 23:49:52'),
-(3, 'Nguyễn Thế Đại', 'thedaiq27@gmail.com', '0346132165', 'Hà Nội', '', 85000.00, 'Thanh toán khi nhận hàng (COD)', 'Đã hủy', '2026-10-22 00:14:41');
+INSERT INTO `donhang` (`id`, `user_id`, `ten_nguoi_nhan`, `email`, `sdt`, `dia_chi`, `ghi_chu`, `tong_tien`, `phuong_thuc_thanh_toan`, `trang_thai`, `ngay_dat`) VALUES
+(1, NULL, 'Nguyễn Thế Đại', 'thedaiq27@gmail.com', '0346132165', 'Hà Nội', '', 200000.00, 'Thanh toán khi nhận hàng (COD)', 'Đã xác nhận', '2026-10-21 23:45:45'),
+(2, NULL, 'Nguyễn Thế Đại', 'sonathytq1507@gmail.com', '0346132165', 'Hà Nội', '', 170000.00, 'Thanh toán khi nhận hàng (COD)', 'Đã xác nhận', '2026-10-21 23:49:52'),
+(3, NULL, 'Nguyễn Thế Đại', 'thedaiq27@gmail.com', '0346132165', 'Hà Nội', '', 85000.00, 'Thanh toán khi nhận hàng (COD)', 'Đã hủy', '2026-10-22 00:14:41');
 
 -- --------------------------------------------------------
 
@@ -168,7 +169,8 @@ INSERT INTO `users` (`id`, `username`, `password`, `role`) VALUES
 --
 ALTER TABLE `chitiet_donhang`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `donhang_id` (`donhang_id`);
+  ADD KEY `donhang_id` (`donhang_id`),
+  ADD KEY `fk_chitiet_sanpham` (`sanpham_id`);
 
 --
 -- Chỉ mục cho bảng `danhmuc`
@@ -180,13 +182,15 @@ ALTER TABLE `danhmuc`
 -- Chỉ mục cho bảng `donhang`
 --
 ALTER TABLE `donhang`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_donhang_user_id` (`user_id`);
 
 --
 -- Chỉ mục cho bảng `sanpham`
 --
 ALTER TABLE `sanpham`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_sanpham_danhmuc` (`danhmuc_id`);
 
 --
 -- Chỉ mục cho bảng `users`
@@ -237,7 +241,20 @@ ALTER TABLE `users`
 -- Các ràng buộc cho bảng `chitiet_donhang`
 --
 ALTER TABLE `chitiet_donhang`
-  ADD CONSTRAINT `chitiet_donhang_ibfk_1` FOREIGN KEY (`donhang_id`) REFERENCES `donhang` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `chitiet_donhang_ibfk_1` FOREIGN KEY (`donhang_id`) REFERENCES `donhang` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_chitiet_sanpham` FOREIGN KEY (`sanpham_id`) REFERENCES `sanpham` (`id`) ON UPDATE CASCADE;
+
+--
+-- Các ràng buộc cho bảng `donhang`
+--
+ALTER TABLE `donhang`
+  ADD CONSTRAINT `fk_donhang_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Các ràng buộc cho bảng `sanpham`
+--
+ALTER TABLE `sanpham`
+  ADD CONSTRAINT `fk_sanpham_danhmuc` FOREIGN KEY (`danhmuc_id`) REFERENCES `danhmuc` (`id`) ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
